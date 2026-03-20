@@ -14,9 +14,15 @@ const ui = {
   readyStatus: document.querySelector("#ready-status"),
   heaterCount: document.querySelector("#heater-count"),
   statusMessage: document.querySelector("#status-message"),
+  sessionStatus: document.querySelector("#session-status"),
   heaterSelect: document.querySelector("#heater-select"),
   targetTemperature: document.querySelector("#target-temperature"),
   startButton: document.querySelector("#start-button"),
+  stopButton: document.querySelector("#stop-button"),
+  sessionHeater: document.querySelector("#session-heater"),
+  sessionTarget: document.querySelector("#session-target"),
+  sessionActual: document.querySelector("#session-actual"),
+  sessionPoints: document.querySelector("#session-points"),
   eventLog: document.querySelector("#event-log"),
   form: document.querySelector("#measurement-form"),
 };
@@ -27,6 +33,7 @@ const appContext = {
   heaters: [],
   connectionPhase: "disconnected",
   readiness: null,
+  session: createEmptySession(),
 };
 
 const client = new MoonrakerClient({
@@ -37,6 +44,7 @@ const client = new MoonrakerClient({
     appContext.connectionPhase = status;
     updateStatusPanel();
   },
+  onStatusUpdate: handleStatusUpdate,
 });
 
 stateMachine.subscribe(({ nextState, meta }) => {
@@ -45,7 +53,23 @@ stateMachine.subscribe(({ nextState, meta }) => {
 
 ui.form.addEventListener("submit", (event) => {
   event.preventDefault();
-  appendLog("Messstart ist in v0 noch nicht implementiert");
+  startMeasurement().catch((error) => {
+    handleFatalError(error);
+  });
+});
+
+ui.stopButton.addEventListener("click", () => {
+  stopMeasurement().catch((error) => {
+    handleFatalError(error);
+  });
+});
+
+ui.heaterSelect.addEventListener("change", () => {
+  syncFormState();
+});
+
+ui.targetTemperature.addEventListener("input", () => {
+  syncFormState();
 });
 
 bootstrap().catch((error) => {
@@ -78,6 +102,7 @@ async function bootstrap() {
 
       if (heaters.length > 0) {
         await client.subscribeToObjects(heaters);
+        appendLog("Telemetrie-Subscription aktiv");
       }
 
       populateHeaters(heaters);
@@ -107,11 +132,14 @@ function renderState(state, meta = {}) {
   ui.badge.className = `state-badge state-${normalizedState}`;
 
   const isIdle = state === "IDLE";
+  const isHeating = state === "HEATING";
   ui.heaterSelect.disabled = !isIdle || appContext.heaters.length === 0;
   ui.targetTemperature.disabled = !isIdle;
-  ui.startButton.disabled = true;
+  ui.stopButton.disabled = !isHeating;
 
+  syncFormState();
   updateStatusPanel();
+  updateSessionPanel();
 
   if (meta.reason === "initial") {
     return;
@@ -125,6 +153,7 @@ function updateStatusPanel() {
   ui.readyStatus.textContent = describeReadiness(appContext.readiness);
   ui.heaterCount.textContent = String(appContext.heaters.length);
   ui.statusMessage.textContent = buildStatusMessage();
+  ui.sessionStatus.textContent = describeSessionStatus();
 }
 
 function describeConnection(connectionPhase) {
@@ -160,6 +189,10 @@ function buildStatusMessage() {
 
   if (state === "IDLE" && appContext.heaters.length > 0) {
     return "System bereit, Heizerliste geladen";
+  }
+
+  if (state === "HEATING") {
+    return "Messung laeuft und Rohdaten werden aufgezeichnet";
   }
 
   if (state === "IDLE") {
@@ -198,6 +231,8 @@ function populateHeaters(heaters) {
     option.textContent = heater;
     ui.heaterSelect.append(option);
   }
+
+  syncFormState();
 }
 
 function appendLog(message) {
@@ -220,9 +255,13 @@ function appendLog(message) {
 
 function handleFatalError(error, { recoverable = false } = {}) {
   appContext.connectionPhase = "error";
-  appContext.heaters = [];
-  appContext.readiness = null;
-  populateHeaters([]);
+  appContext.session.active = false;
+
+  if (!recoverable) {
+    appContext.heaters = [];
+    appContext.readiness = null;
+    populateHeaters([]);
+  }
 
   try {
     transitionTo("ERROR", { message: error.message });
@@ -233,9 +272,160 @@ function handleFatalError(error, { recoverable = false } = {}) {
   }
 
   updateStatusPanel();
+  updateSessionPanel();
   appendLog(`Fehler: ${error.message}`);
 
   if (!recoverable) {
     throw error;
   }
+}
+
+function createEmptySession() {
+  return {
+    active: false,
+    heater: "",
+    targetTemperature: null,
+    points: [],
+    heatingStartTimestamp: null,
+    lastActual: null,
+  };
+}
+
+function getValidatedTargetTemperature() {
+  const value = Number(ui.targetTemperature.value);
+  if (!Number.isFinite(value) || value <= 0) {
+    return null;
+  }
+
+  return value;
+}
+
+function syncFormState() {
+  const state = stateMachine.getState();
+  const heaterSelected = Boolean(ui.heaterSelect.value);
+  const targetTemperature = getValidatedTargetTemperature();
+  const canStart =
+    state === "IDLE" &&
+    heaterSelected &&
+    targetTemperature !== null &&
+    appContext.heaters.includes(ui.heaterSelect.value);
+
+  ui.startButton.disabled = !canStart;
+}
+
+function updateSessionPanel() {
+  const { session } = appContext;
+  ui.sessionHeater.textContent = session.heater || "-";
+  ui.sessionTarget.textContent =
+    session.targetTemperature === null ? "-" : `${session.targetTemperature.toFixed(1)} C`;
+  ui.sessionActual.textContent =
+    session.lastActual === null ? "-" : `${session.lastActual.toFixed(1)} C`;
+  ui.sessionPoints.textContent = String(session.points.length);
+}
+
+function describeSessionStatus() {
+  const state = stateMachine.getState();
+  if (state === "HEATING" && appContext.session.heater) {
+    return `Aktive Messung auf ${appContext.session.heater}`;
+  }
+
+  return "Keine aktive Messung";
+}
+
+async function startMeasurement() {
+  if (stateMachine.getState() !== "IDLE") {
+    throw new Error("Messung kann nur aus dem Zustand IDLE gestartet werden");
+  }
+
+  const heater = ui.heaterSelect.value;
+  const targetTemperature = getValidatedTargetTemperature();
+
+  if (!heater || targetTemperature === null) {
+    throw new Error("Bitte Heizer und Zieltemperatur gueltig setzen");
+  }
+
+  const script = buildHeatCommand(heater, targetTemperature);
+
+  appContext.session = {
+    active: true,
+    heater,
+    targetTemperature,
+    points: [],
+    heatingStartTimestamp: null,
+    lastActual: null,
+  };
+
+  updateSessionPanel();
+  appendLog(`Sende Heizbefehl fuer ${heater} auf ${targetTemperature.toFixed(0)} C`);
+  await client.runGcodeScript(script);
+  transitionTo("HEATING", { heater, targetTemperature });
+}
+
+async function stopMeasurement() {
+  const { session } = appContext;
+
+  if (!session.active || !session.heater) {
+    return;
+  }
+
+  appendLog(`Stoppe Messung fuer ${session.heater}`);
+  await client.runGcodeScript(buildOffCommand(session.heater));
+  appendLog(`Messung beendet, ${session.points.length} Rohdatenpunkte gespeichert`);
+  appContext.session.active = false;
+  transitionTo("IDLE", { pointsCaptured: session.points.length });
+  updateSessionPanel();
+}
+
+function handleStatusUpdate({ status, eventtime }) {
+  const { session } = appContext;
+
+  if (!session.active || !session.heater) {
+    return;
+  }
+
+  const heaterStatus = status?.[session.heater];
+  if (!heaterStatus || typeof heaterStatus.temperature !== "number") {
+    return;
+  }
+
+  if (session.heatingStartTimestamp === null && typeof eventtime === "number") {
+    session.heatingStartTimestamp = eventtime;
+    appendLog(`Erster Telemetriepunkt fuer ${session.heater} empfangen`);
+  }
+
+  session.lastActual = heaterStatus.temperature;
+  session.points.push({
+    timestamp: typeof eventtime === "number" ? eventtime : Date.now() / 1000,
+    target: typeof heaterStatus.target === "number" ? heaterStatus.target : session.targetTemperature,
+    actual: heaterStatus.temperature,
+    heater: session.heater,
+  });
+
+  updateSessionPanel();
+}
+
+function buildHeatCommand(heater, targetTemperature) {
+  const formattedTarget = targetTemperature.toFixed(0);
+
+  if (heater === "extruder") {
+    return `M104 S${formattedTarget}`;
+  }
+
+  if (heater === "heater_bed") {
+    return `M140 S${formattedTarget}`;
+  }
+
+  return `SET_HEATER_TEMPERATURE HEATER="${heater}" TARGET=${formattedTarget}`;
+}
+
+function buildOffCommand(heater) {
+  if (heater === "extruder") {
+    return "M104 S0";
+  }
+
+  if (heater === "heater_bed") {
+    return "M140 S0";
+  }
+
+  return `SET_HEATER_TEMPERATURE HEATER="${heater}" TARGET=0`;
 }

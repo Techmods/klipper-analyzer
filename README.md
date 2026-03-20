@@ -9,12 +9,13 @@ Der aktuelle v0-Stand implementiert:
 - Status-UI fuer Verbindung und Printer-Readiness
 - Startup-Sequenz mit WebSocket, Identify, Ready-Check und Objektliste
 - dynamische Heizer-Erkennung fuer das Zielsystem
+- Start und Stop einer einfachen Heiz-Session fuer den gewaehlten Heizer
+- Rohdatenaufzeichnung aus Moonraker-Telemetrie waehrend aktiver Session
 - Same-Origin-Deployment unter Mainsail via `/klipper-analyzer/`
 
 Noch nicht implementiert:
 
-- Heizbefehl und Messstart
-- kompletter Messzyklus
+- kompletter Messzyklus mit Stabilisierung und Cooling
 - Charting
 - Analyse
 - CSV-Export

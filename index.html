@@ -48,6 +48,10 @@
           <dt>Hinweis</dt>
           <dd id="status-message">Warte auf Initialisierung</dd>
         </div>
+        <div>
+          <dt>Aktive Session</dt>
+          <dd id="session-status">Keine aktive Messung</dd>
+        </div>
       </dl>
     </section>
 
@@ -79,13 +83,38 @@
 
         <div class="actions">
           <button id="start-button" type="submit" disabled>Messung starten</button>
+          <button id="stop-button" type="button" class="button-secondary" disabled>Messung stoppen</button>
         </div>
       </form>
 
       <p class="panel-note">
-        Der Startbutton bleibt in v0 absichtlich deaktiviert. In diesem Schritt bauen wir nur
-        den stabilen Verbindungs- und Initialisierungspfad.
+        Dieser Stand startet eine echte Heiz-Session fuer den gewaehlten Heizer und zeichnet
+        Rohdatenpunkte aus der Moonraker-Telemetrie auf.
       </p>
+    </section>
+
+    <section class="panel" aria-labelledby="session-title">
+      <div class="panel-heading">
+        <h2 id="session-title">Sessiondaten</h2>
+      </div>
+      <dl class="status-grid">
+        <div>
+          <dt>Heizer</dt>
+          <dd id="session-heater">-</dd>
+        </div>
+        <div>
+          <dt>Zieltemperatur</dt>
+          <dd id="session-target">-</dd>
+        </div>
+        <div>
+          <dt>Letzte Temperatur</dt>
+          <dd id="session-actual">-</dd>
+        </div>
+        <div>
+          <dt>Rohdatenpunkte</dt>
+          <dd id="session-points">0</dd>
+        </div>
+      </dl>
     </section>
 
     <section class="panel" aria-labelledby="log-title">

@@ -11,11 +11,13 @@ export class MoonrakerClient {
     restBasePath = "",
     onLog = () => {},
     onConnectionChange = () => {},
+    onStatusUpdate = () => {},
   } = {}) {
     this.websocketPath = websocketPath;
     this.restBasePath = restBasePath;
     this.onLog = onLog;
     this.onConnectionChange = onConnectionChange;
+    this.onStatusUpdate = onStatusUpdate;
     this.socket = null;
     this.socketReadyPromise = null;
     this.rpcId = createRpcIdGenerator();
@@ -116,6 +118,16 @@ export class MoonrakerClient {
 
     this.onLog(`Setze Subscription fuer ${objects.length} Objekt(e)`);
     return this.sendRpc("printer.objects.subscribe", payload);
+  }
+
+  async runGcodeScript(script) {
+    return this.fetchJson("/printer/gcode/script", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ script }),
+    });
   }
 
   async fetchJson(path, options = {}) {
@@ -224,7 +236,8 @@ export class MoonrakerClient {
     }
 
     if (message.method === "notify_status_update") {
-      this.onLog("Telemetrie-Subscription aktiv");
+      const [status = {}, eventtime = null] = Array.isArray(message.params) ? message.params : [];
+      this.onStatusUpdate({ status, eventtime, raw: message });
     }
   }
 
