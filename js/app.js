@@ -23,6 +23,11 @@ const ui = {
   sessionTarget: document.querySelector("#session-target"),
   sessionActual: document.querySelector("#session-actual"),
   sessionPoints: document.querySelector("#session-points"),
+  chartSvg: document.querySelector("#session-chart"),
+  chartEmpty: document.querySelector("#chart-empty"),
+  chartDuration: document.querySelector("#chart-duration"),
+  chartRange: document.querySelector("#chart-range"),
+  chartPoints: document.querySelector("#chart-points"),
   eventLog: document.querySelector("#event-log"),
   form: document.querySelector("#measurement-form"),
 };
@@ -140,6 +145,7 @@ function renderState(state, meta = {}) {
   syncFormState();
   updateStatusPanel();
   updateSessionPanel();
+  renderSessionChart(appContext.session);
 
   if (meta.reason === "initial") {
     return;
@@ -273,6 +279,7 @@ function handleFatalError(error, { recoverable = false } = {}) {
 
   updateStatusPanel();
   updateSessionPanel();
+  renderSessionChart(appContext.session);
   appendLog(`Fehler: ${error.message}`);
 
   if (!recoverable) {
@@ -323,6 +330,122 @@ function updateSessionPanel() {
   ui.sessionPoints.textContent = String(session.points.length);
 }
 
+function renderSessionChart(session) {
+  ui.chartSvg.replaceChildren();
+  ui.chartPoints.textContent = String(session.points.length);
+
+  if (!session.points.length) {
+    ui.chartDuration.textContent = "0.0 s";
+    ui.chartRange.textContent = "-";
+    ui.chartEmpty.hidden = false;
+    return;
+  }
+
+  const startTimestamp =
+    typeof session.heatingStartTimestamp === "number" ? session.heatingStartTimestamp : session.points[0].timestamp;
+  const plottedPoints = session.points.map((point) => ({
+    x: Math.max(0, point.timestamp - startTimestamp),
+    actual: point.actual,
+    target: point.target,
+  }));
+
+  const actualValues = plottedPoints.map((point) => point.actual);
+  const targetValues = plottedPoints.map((point) => point.target);
+  const allValues = [...actualValues, ...targetValues];
+  const rawMinY = Math.min(...allValues);
+  const rawMaxY = Math.max(...allValues);
+  const yPadding = Math.max(5, (rawMaxY - rawMinY) * 0.15 || 5);
+  const minY = Math.max(0, rawMinY - yPadding);
+  const maxY = rawMaxY + yPadding;
+  const maxX = Math.max(plottedPoints[plottedPoints.length - 1].x, 1);
+
+  ui.chartDuration.textContent = `${maxX.toFixed(1)} s`;
+  ui.chartRange.textContent = `${Math.min(...actualValues).toFixed(1)} C / ${Math.max(...actualValues).toFixed(1)} C`;
+  ui.chartEmpty.hidden = plottedPoints.length > 1;
+
+  if (plottedPoints.length < 2) {
+    return;
+  }
+
+  const svgWidth = 720;
+  const svgHeight = 280;
+  const padding = { top: 20, right: 22, bottom: 32, left: 52 };
+  const chartWidth = svgWidth - padding.left - padding.right;
+  const chartHeight = svgHeight - padding.top - padding.bottom;
+  const axisBottom = padding.top + chartHeight;
+
+  const xScale = (value) => padding.left + (value / maxX) * chartWidth;
+  const yScale = (value) => padding.top + chartHeight - ((value - minY) / (maxY - minY || 1)) * chartHeight;
+
+  const fragment = document.createDocumentFragment();
+  const gridValues = buildGridValues(minY, maxY, 4);
+
+  for (const gridValue of gridValues) {
+    fragment.append(
+      createSvgElement("line", {
+        x1: padding.left,
+        y1: yScale(gridValue),
+        x2: padding.left + chartWidth,
+        y2: yScale(gridValue),
+        class: "chart-grid",
+      }),
+    );
+    fragment.append(
+      createSvgElement("text", {
+        x: padding.left - 10,
+        y: yScale(gridValue) + 4,
+        "text-anchor": "end",
+        class: "chart-label",
+      }, `${gridValue.toFixed(0)} C`),
+    );
+  }
+
+  fragment.append(
+    createSvgElement("line", {
+      x1: padding.left,
+      y1: axisBottom,
+      x2: padding.left + chartWidth,
+      y2: axisBottom,
+      class: "chart-axis",
+    }),
+  );
+  fragment.append(
+    createSvgElement("line", {
+      x1: padding.left,
+      y1: padding.top,
+      x2: padding.left,
+      y2: axisBottom,
+      class: "chart-axis",
+    }),
+  );
+  fragment.append(
+    createSvgElement("text", {
+      x: padding.left + chartWidth,
+      y: axisBottom + 22,
+      "text-anchor": "end",
+      class: "chart-label",
+    }, `${maxX.toFixed(1)} s`),
+  );
+
+  const actualPoints = plottedPoints.map((point) => `${xScale(point.x)},${yScale(point.actual)}`).join(" ");
+  const targetPoints = plottedPoints.map((point) => `${xScale(point.x)},${yScale(point.target)}`).join(" ");
+
+  fragment.append(
+    createSvgElement("polyline", {
+      points: targetPoints,
+      class: "chart-line-target",
+    }),
+  );
+  fragment.append(
+    createSvgElement("polyline", {
+      points: actualPoints,
+      class: "chart-line-actual",
+    }),
+  );
+
+  ui.chartSvg.append(fragment);
+}
+
 function describeSessionStatus() {
   const state = stateMachine.getState();
   if (state === "HEATING" && appContext.session.heater) {
@@ -356,6 +479,7 @@ async function startMeasurement() {
   };
 
   updateSessionPanel();
+  renderSessionChart(appContext.session);
   appendLog(`Sende Heizbefehl fuer ${heater} auf ${targetTemperature.toFixed(0)} C`);
   await client.runGcodeScript(script);
   transitionTo("HEATING", { heater, targetTemperature });
@@ -402,6 +526,7 @@ function handleStatusUpdate({ status, eventtime }) {
   });
 
   updateSessionPanel();
+  renderSessionChart(session);
 }
 
 function buildHeatCommand(heater, targetTemperature) {
@@ -428,4 +553,27 @@ function buildOffCommand(heater) {
   }
 
   return `SET_HEATER_TEMPERATURE HEATER="${heater}" TARGET=0`;
+}
+
+function buildGridValues(minValue, maxValue, steps) {
+  if (steps <= 0) {
+    return [minValue, maxValue];
+  }
+
+  const increment = (maxValue - minValue) / steps;
+  return Array.from({ length: steps + 1 }, (_, index) => minValue + increment * index);
+}
+
+function createSvgElement(tagName, attributes, textContent = "") {
+  const element = document.createElementNS("http://www.w3.org/2000/svg", tagName);
+
+  for (const [key, value] of Object.entries(attributes)) {
+    element.setAttribute(key, String(value));
+  }
+
+  if (textContent) {
+    element.textContent = textContent;
+  }
+
+  return element;
 }

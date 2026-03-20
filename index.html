@@ -117,6 +117,33 @@
       </dl>
     </section>
 
+    <section class="panel" aria-labelledby="chart-title">
+      <div class="panel-heading">
+        <h2 id="chart-title">Heizkurve</h2>
+        <div class="chart-legend" aria-label="Diagrammlegende">
+          <span class="legend-item legend-actual">Ist</span>
+          <span class="legend-item legend-target">Soll</span>
+        </div>
+      </div>
+
+      <div class="chart-meta" aria-label="Diagramm-Metadaten">
+        <span>Dauer: <strong id="chart-duration">0.0 s</strong></span>
+        <span>Min/Max Ist: <strong id="chart-range">-</strong></span>
+        <span>Punkte: <strong id="chart-points">0</strong></span>
+      </div>
+
+      <div class="chart-frame">
+        <svg
+          id="session-chart"
+          class="session-chart"
+          viewBox="0 0 720 280"
+          role="img"
+          aria-label="Live-Heizkurve fuer Ist- und Solltemperatur"
+        ></svg>
+        <p id="chart-empty" class="chart-empty">Noch keine Heizkurve verfuegbar.</p>
+      </div>
+    </section>
+
     <section class="panel" aria-labelledby="log-title">
       <div class="panel-heading">
         <h2 id="log-title">Ereignisprotokoll</h2>

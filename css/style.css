@@ -196,6 +196,110 @@ body {
   line-height: 1.5;
 }
 
+.chart-legend,
+.chart-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.chart-legend {
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+.legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.legend-item::before {
+  content: "";
+  width: 0.9rem;
+  height: 0.22rem;
+  border-radius: 999px;
+  background: currentColor;
+}
+
+.legend-actual {
+  color: var(--accent-strong);
+}
+
+.legend-target {
+  color: var(--ok);
+}
+
+.chart-meta {
+  margin-bottom: 0.9rem;
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
+.chart-meta strong {
+  color: var(--text);
+}
+
+.chart-frame {
+  position: relative;
+  min-height: 280px;
+  border: 1px solid rgba(89, 68, 48, 0.12);
+  border-radius: 18px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.58), rgba(255, 255, 255, 0.84)),
+    radial-gradient(circle at top, rgba(217, 158, 95, 0.1), transparent 38%);
+  overflow: hidden;
+}
+
+.session-chart {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.chart-empty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  color: var(--muted);
+  font-size: 1rem;
+}
+
+.chart-grid {
+  stroke: rgba(89, 68, 48, 0.14);
+  stroke-width: 1;
+}
+
+.chart-axis {
+  stroke: rgba(89, 68, 48, 0.34);
+  stroke-width: 1.4;
+}
+
+.chart-label {
+  fill: var(--muted);
+  font-size: 12px;
+}
+
+.chart-line-actual {
+  fill: none;
+  stroke: var(--accent-strong);
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.chart-line-target {
+  fill: none;
+  stroke: var(--ok);
+  stroke-width: 2.5;
+  stroke-dasharray: 8 6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
 .event-log {
   list-style: none;
   margin: 0;

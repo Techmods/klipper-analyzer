@@ -11,6 +11,7 @@ Der aktuelle v0-Stand implementiert:
 - dynamische Heizer-Erkennung fuer das Zielsystem
 - Start und Stop einer einfachen Heiz-Session fuer den gewaehlten Heizer
 - Rohdatenaufzeichnung aus Moonraker-Telemetrie waehrend aktiver Session
+- Live-Heizkurve fuer Ist- und Solltemperatur ohne externe Chart-Bibliothek
 - Same-Origin-Deployment unter Mainsail via `/klipper-analyzer/`
 
 Noch nicht implementiert:
@@ -27,8 +28,10 @@ Noch nicht implementiert:
 - `js/api.js`: Moonraker-Client fuer REST und WebSocket
 - `js/state_machine.js`: Zustandsmodell fuer den Startup-Pfad
 - `nginx/profiler.conf`: Nginx-Snippet fuer Mainsail-Integration
+- `deploy/mainsail-theme/navi.json`: vorbereiteter Sidebar-Link fuer Mainsail Custom Navigation
 - `docs/hardware.md`: Testplattform
 - `docs/deployment.md`: Deployment-Referenz fuer das Zielsystem
+- `docs/mainsail-sidebar.md`: Anleitung fuer die Mainsail-Sidebar-Integration
 
 ## Installation auf dem Pi
 
@@ -111,3 +114,15 @@ Bis dahin ist der empfohlene Weg:
 - Entwicklung im GitHub-Repo
 - `git pull` auf dem Pi
 - Nginx nur bei Konfigurationsaenderungen neu laden
+
+## Mainsail Sidebar
+
+Fuer die Sidebar-Integration wird Mainsail nicht geforkt. Stattdessen liegt eine vorbereitete Custom-Navigation-Datei unter:
+
+```text
+deploy/mainsail-theme/navi.json
+```
+
+Die genaue Einbindung ist hier beschrieben:
+
+- `docs/mainsail-sidebar.md`
