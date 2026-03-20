@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <base href="/klipper-analyzer/">
+  <title>Klipper Analyzer</title>
+  <link rel="stylesheet" href="./css/style.css">
+  <script>
+    window.KLIPPER_ANALYZER_CONFIG = {
+      appBasePath: "/klipper-analyzer/",
+      moonrakerRestBase: "",
+      moonrakerWebsocketPath: "/websocket",
+    };
+  </script>
+</head>
+<body>
+  <main class="app-shell">
+    <section class="hero">
+      <p class="eyebrow">Klipper Analyzer v0</p>
+      <h1>Moonraker-Verbindung und Heizer-Erkennung</h1>
+      <p class="lede">
+        Dieser erste Stand richtet die SPA ein, verbindet sich per Same-Origin mit
+        Moonraker und schaltet die UI erst frei, wenn das System bereit ist.
+      </p>
+    </section>
+
+    <section class="panel panel-status" aria-labelledby="status-title">
+      <div class="panel-heading">
+        <h2 id="status-title">Systemstatus</h2>
+        <span id="state-badge" class="state-badge state-disconnected">DISCONNECTED</span>
+      </div>
+
+      <dl class="status-grid">
+        <div>
+          <dt>Verbindung</dt>
+          <dd id="connection-status">Noch nicht verbunden</dd>
+        </div>
+        <div>
+          <dt>Printer Ready</dt>
+          <dd id="ready-status">Unbekannt</dd>
+        </div>
+        <div>
+          <dt>Gefundene Heizer</dt>
+          <dd id="heater-count">0</dd>
+        </div>
+        <div>
+          <dt>Hinweis</dt>
+          <dd id="status-message">Warte auf Initialisierung</dd>
+        </div>
+      </dl>
+    </section>
+
+    <section class="panel" aria-labelledby="controls-title">
+      <div class="panel-heading">
+        <h2 id="controls-title">Messvorbereitung</h2>
+      </div>
+
+      <form id="measurement-form" class="control-form">
+        <label class="field">
+          <span>Heizer</span>
+          <select id="heater-select" name="heater" disabled>
+            <option value="">Keine Heizer verfuegbar</option>
+          </select>
+        </label>
+
+        <label class="field">
+          <span>Zieltemperatur</span>
+          <input
+            id="target-temperature"
+            name="targetTemperature"
+            type="number"
+            min="0"
+            step="1"
+            placeholder="Noch nicht aktiv"
+            disabled
+          >
+        </label>
+
+        <div class="actions">
+          <button id="start-button" type="submit" disabled>Messung starten</button>
+        </div>
+      </form>
+
+      <p class="panel-note">
+        Der Startbutton bleibt in v0 absichtlich deaktiviert. In diesem Schritt bauen wir nur
+        den stabilen Verbindungs- und Initialisierungspfad.
+      </p>
+    </section>
+
+    <section class="panel" aria-labelledby="log-title">
+      <div class="panel-heading">
+        <h2 id="log-title">Ereignisprotokoll</h2>
+      </div>
+      <ul id="event-log" class="event-log" aria-live="polite"></ul>
+    </section>
+  </main>
+
+  <script type="module" src="./js/app.js"></script>
+</body>
+</html>
