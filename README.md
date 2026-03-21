@@ -12,6 +12,7 @@ Der aktuelle v0-Stand implementiert:
 - Start und Stop einer einfachen Heiz-Session fuer den gewaehlten Heizer
 - Rohdatenaufzeichnung aus Moonraker-Telemetrie waehrend aktiver Session
 - Live-Heizkurve fuer Ist- und Solltemperatur ohne externe Chart-Bibliothek
+- dunklere, an Mainsail angelehnte Oberflaeche fuer die Web-App
 - Same-Origin-Deployment unter Mainsail via `/klipper-analyzer/`
 
 Noch nicht implementiert:

@@ -37,6 +37,30 @@ Inhalt:
 3. `deploy/mainsail-theme/navi.json` in dieses Theme kopieren.
 4. Mainsail bzw. den Browser neu laden.
 
+## Praktische Pi-Schritte
+
+Die Datei im Projekt liegt nach dem Klonen hier:
+
+```text
+/home/pi/klipper-analyzer/deploy/mainsail-theme/navi.json
+```
+
+Falls du bereits ein aktives Custom-Theme hast, kopiere die Datei in dieses Theme.
+
+Beispiel mit Platzhalterpfad:
+
+```bash
+cp /home/pi/klipper-analyzer/deploy/mainsail-theme/navi.json /PFAD/ZUM/AKTIVEN/THEME/navi.json
+```
+
+Danach Browser neu laden.
+
+Wenn du den Theme-Pfad noch nicht kennst, ist der sichere Weg:
+
+1. In Mainsail nachsehen, welches Custom Theme aktiv ist.
+2. Falls noch keines existiert, ein Custom Theme anlegen.
+3. Erst dann `navi.json` in dieses Theme kopieren.
+
 ## Hinweise
 
 - Den exakten Theme-Pfad verdrahtet dieses Repo absichtlich nicht, weil er je nach Setup variieren kann.
